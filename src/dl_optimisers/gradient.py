@@ -6,7 +6,10 @@ import torch
 
 from ..param_arrays.base import ParamArray
 from ..sim_helpers.arrays import evaluate_array_torch
-from ..sim_helpers.results import combined_objective_torch
+from ..sim_helpers.results import (
+    combined_objective_torch,
+    beam_steering_objective_torch,
+)
 
 
 @dataclass
@@ -26,7 +29,10 @@ class GradientConfig:
     weight_directivity: float = 1.0
     weight_cone_power: float = 0.0
     weight_sll: float = 0.0
+    weight_beam_steering: float = 0.0
     cone_half_angle_deg: float = 15.0
+    target_theta_deg: float = 0.0
+    target_phi_deg: float = 0.0
 
     device: str = "cpu"
 
@@ -84,6 +90,14 @@ class GradientOptimizer:
             penalty=0.0,
         )
 
+        if cfg.weight_beam_steering > 0:
+            steering_eff, gain_at_target = beam_steering_objective_torch(
+                power, cfg.target_theta_deg, cfg.target_phi_deg
+            )
+            objective = objective + cfg.weight_beam_steering * (
+                100 * steering_eff + gain_at_target
+            )
+
         with torch.no_grad():
             from ..sim_helpers.results import (
                 directivity_torch,
@@ -94,6 +108,10 @@ class GradientOptimizer:
 
             cone_pwr = cone_power_torch(power, cfg.cone_half_angle_deg).item()
             peak_theta, peak_phi, _ = find_peak_direction_torch(power)
+
+            steering_eff_val, gain_at_target_val = beam_steering_objective_torch(
+                power, cfg.target_theta_deg, cfg.target_phi_deg
+            )
 
             metrics = {
                 "objective": objective.item(),
@@ -109,6 +127,18 @@ class GradientOptimizer:
                 "peak_phi_deg": (
                     peak_phi.item() if hasattr(peak_phi, "item") else peak_phi
                 ),
+                "steering_efficiency": (
+                    steering_eff_val.item()
+                    if hasattr(steering_eff_val, "item")
+                    else steering_eff_val
+                ),
+                "gain_at_target_dbi": (
+                    gain_at_target_val.item()
+                    if hasattr(gain_at_target_val, "item")
+                    else gain_at_target_val
+                ),
+                "target_theta_deg": cfg.target_theta_deg,
+                "target_phi_deg": cfg.target_phi_deg,
             }
 
         return objective, metrics

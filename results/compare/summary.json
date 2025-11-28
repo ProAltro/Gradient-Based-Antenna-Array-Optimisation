@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-11-28T06:41:32.991905",
+  "total_time_s": 2888.6018602848053,
+  "num_tasks": 36,
+  "successful": 36,
+  "failed": 0,
+  "config": {
+    "max_iters": 100,
+    "pop_size": 40,
+    "frequencies": {
+      "grid": 10000000000.0,
+      "hexagonal": 28000000000.0,
+      "spiral": 6500000000.0
+    },
+    "objectives": [
+      "directivity",
+      "cone_power",
+      "beam_steering"
+    ],
+    "target_theta_deg": 30.0,
+    "target_phi_deg": 45.0,
+    "cone_half_angle_deg": 25.0
+  }
+}
